@@ -25,7 +25,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', traceId: req.traceId });
 });
 
-// Swagger setup (placeholder - you can expand this with zod-to-openapi later)
+
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup({
   openapi: '3.0.0',
   info: { title: 'Meetings API', version: '1.0.0' },
@@ -40,14 +40,18 @@ app.use('/api/action-items', authMiddleware, actionItemsRouter);
 
 app.use(errorHandler);
 
+export { app };
+
 const start = async () => {
   try {
     await connectRedis();
     startScheduler();
 
-    app.listen(env.PORT, () => {
-      logger.info(`Server running on port ${env.PORT}`);
-    });
+    if (process.env.NODE_ENV !== 'test') {
+      app.listen(env.PORT, () => {
+        logger.info(`Server running on port ${env.PORT}`);
+      });
+    }
   } catch (err) {
     logger.error({ err }, 'Failed to start server');
     process.exit(1);

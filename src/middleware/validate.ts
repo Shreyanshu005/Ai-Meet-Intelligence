@@ -6,9 +6,10 @@ export const validate = (schema: ZodSchema) => (req: Request, res: Response, nex
   try {
     schema.parse(req.body);
     next();
-  } catch (error) {
+  } catch (error: any) {
     if (error instanceof ZodError) {
-      return res.status(400).json(fail('VALIDATION_ERROR', error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', '), req.traceId));
+      const issues = error.errors || error.issues || [];
+      return res.status(400).json(fail('VALIDATION_ERROR', issues.map((e: any) => `${e.path?.join('.')}: ${e.message}`).join(', '), req.traceId));
     }
     next(error);
   }

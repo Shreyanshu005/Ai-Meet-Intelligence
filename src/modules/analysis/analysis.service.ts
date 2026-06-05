@@ -16,9 +16,21 @@ export class AnalysisService {
     }
 
     const cacheKey = `meeting:${meetingId}:analysis`;
-    const cached = await redis.get(cacheKey);
-    if (cached) {
-      return JSON.parse(cached);
+    if (redis.isReady) {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    }
+
+    const existingAnalysis = await prisma.analysis.findUnique({ where: { meetingId } });
+    if (existingAnalysis) {
+      const existingActionItems = await prisma.actionItem.findMany({ where: { meetingId } });
+      const finalResult = { analysis: existingAnalysis, actionItems: existingActionItems };
+      if (redis.isReady) {
+        await redis.setEx(cacheKey, 60 * 60 * 24, JSON.stringify(finalResult));
+      }
+      return finalResult;
     }
 
     const transcript = meeting.transcript as unknown as TranscriptEntry[];
@@ -62,13 +74,14 @@ export class AnalysisService {
 
     if (result.actionItems && result.actionItems.length > 0) {
       for (const item of result.actionItems) {
+        const parsedDate = item.dueDate ? new Date(item.dueDate) : null;
         await prisma.actionItem.create({
           data: {
             meetingId,
             userId,
             task: item.task,
             assignee: item.assignee,
-            dueDate: item.dueDate ? new Date(item.dueDate) : null,
+            dueDate: parsedDate && !isNaN(parsedDate.getTime()) ? parsedDate : null,
             citations: item.citations,
           },
         });
