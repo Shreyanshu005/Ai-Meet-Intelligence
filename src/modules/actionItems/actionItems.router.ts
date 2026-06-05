@@ -8,7 +8,14 @@ export const actionItemsRouter = Router();
 
 actionItemsRouter.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const items = await actionItemsService.listActionItems(req.userId!);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const filters = {
+      status: req.query.status as any,
+      assignee: req.query.assignee as string,
+      meetingId: req.query.meetingId as string
+    };
+    const items = await actionItemsService.listActionItems(req.userId!, filters, page, limit);
     res.json(ok(items, req.traceId));
   } catch (error) {
     next(error);

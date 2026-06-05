@@ -2,6 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import swaggerUi from 'swagger-ui-express';
+import yaml from 'yamljs';
+import path from 'path';
+import rateLimit from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
 import { env } from './config/env';
 import { logger } from './lib/logger';
 import { traceIdMiddleware } from './middleware/traceId';
@@ -12,7 +16,7 @@ import { analysisRouter } from './modules/analysis/analysis.router';
 import { actionItemsRouter } from './modules/actionItems/actionItems.router';
 import { authMiddleware } from './middleware/auth';
 import { startScheduler } from './jobs/scheduler';
-import { connectRedis } from './lib/redis';
+import { connectRedis, redis } from './lib/redis';
 
 const app = express();
 
@@ -22,15 +26,41 @@ app.use(express.json());
 app.use(traceIdMiddleware);
 
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', traceId: req.traceId });
+  res.json({ status: 'UP', traceId: req.traceId });
 });
 
+app.get('/api/evaluation', (req, res) => {
+  res.json({
+    candidateName: "John Doe",
+    email: "john@example.com",
+    repositoryUrl: "https://github.com/Shreyanshu005/Ai-Meet-Intelligence",
+    deployedUrl: "https://example.com",
+    externalIntegration: "Resend Email API",
+    features: [
+      "Authentication",
+      "AI Analysis",
+      "Reminder Scheduler",
+      "Rate Limiting",
+      "Idempotent Caching",
+      "Pagination"
+    ]
+  });
+});
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup({
-  openapi: '3.0.0',
-  info: { title: 'Meetings API', version: '1.0.0' },
-  paths: {}
-}));
+const swaggerDocument = yaml.load(path.join(__dirname, '../swagger.yaml'));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  store: new RedisStore({
+    sendCommand: (...args: string[]) => redis.sendCommand(args),
+  }),
+});
+
+app.use('/api', limiter);
 
 app.use('/api/auth', authRouter);
 

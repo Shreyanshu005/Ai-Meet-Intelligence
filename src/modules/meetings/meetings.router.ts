@@ -17,7 +17,9 @@ meetingsRouter.post('/', validate(createMeetingSchema), async (req: Request, res
 
 meetingsRouter.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const meetings = await meetingsService.listMeetings(req.userId!);
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const meetings = await meetingsService.listMeetings(req.userId!, page, limit);
     res.json(ok(meetings, req.traceId));
   } catch (error) {
     next(error);

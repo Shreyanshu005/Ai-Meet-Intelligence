@@ -6,7 +6,7 @@ describe('Utility Endpoints', () => {
   it('GET /health returns 200 and traceId', async () => {
     const res = await request(app).get('/health');
     expect(res.status).toBe(200);
-    expect(res.body.status).toBe('ok');
+    expect(res.body.status).toBe('UP');
     expect(res.body.traceId).toBeDefined();
   });
 });

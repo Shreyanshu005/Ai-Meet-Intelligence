@@ -2,11 +2,18 @@ import { prisma } from '../../lib/prisma';
 import { ActionStatus } from '@prisma/client';
 
 export class ActionItemsService {
-  async listActionItems(userId: string) {
-    return prisma.actionItem.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+  async listActionItems(userId: string, filters: { status?: ActionStatus; assignee?: string; meetingId?: string }, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    const where: any = { userId };
+    if (filters.status) where.status = filters.status;
+    if (filters.assignee) where.assignee = { contains: filters.assignee, mode: 'insensitive' };
+    if (filters.meetingId) where.meetingId = filters.meetingId;
+
+    const [items, total] = await Promise.all([
+      prisma.actionItem.findMany({ where, orderBy: { createdAt: 'desc' }, skip, take: limit }),
+      prisma.actionItem.count({ where })
+    ]);
+    return { data: items, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
   }
 
   async getOverdue(userId: string) {

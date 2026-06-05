@@ -53,7 +53,7 @@ describe('Meetings Module', () => {
       });
       const res = await request(app).get('/api/meetings').set('Authorization', `Bearer ${validToken}`);
       expect(res.status).toBe(200);
-      expect(res.body.data.length).toBe(1);
+      expect(res.body.data.data.length).toBe(1);
     });
   });
 

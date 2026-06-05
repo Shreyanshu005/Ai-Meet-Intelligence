@@ -25,11 +25,13 @@ export class MeetingsService {
     return meeting;
   }
 
-  async listMeetings(userId: string) {
-    return prisma.meeting.findMany({
-      where: { userId },
-      orderBy: { meetingDate: 'desc' },
-    });
+  async listMeetings(userId: string, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    const [meetings, total] = await Promise.all([
+      prisma.meeting.findMany({ where: { userId }, orderBy: { meetingDate: 'desc' }, skip, take: limit }),
+      prisma.meeting.count({ where: { userId } })
+    ]);
+    return { data: meetings, meta: { total, page, limit, totalPages: Math.ceil(total / limit) } };
   }
 }
 

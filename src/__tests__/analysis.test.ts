@@ -4,7 +4,9 @@ import { app } from '../index';
 import { prisma } from '../lib/prisma';
 import { createTestUser, createTestMeeting } from './helpers';
 
-const mockCreate = vi.fn();
+const { mockCreate } = vi.hoisted(() => {
+  return { mockCreate: vi.fn() };
+});
 
 vi.mock('groq-sdk', () => {
   return {

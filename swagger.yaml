@@ -1,0 +1,198 @@
+openapi: 3.0.0
+info:
+  title: Ai Meet Intelligence API
+  version: 1.0.0
+  description: API documentation for Ai Meet Intelligence Backend
+servers:
+  - url: http://localhost:3000
+    description: Local server
+  - url: https://api.aimeetintelligence.com
+    description: Production server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+security:
+  - bearerAuth: []
+
+paths:
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '201':
+          description: User created
+  /api/auth/login:
+    post:
+      summary: Login user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Login successful
+  /api/meetings:
+    get:
+      summary: List meetings
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: A list of meetings
+    post:
+      summary: Create a meeting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, participants, meetingDate, transcript]
+              properties:
+                title:
+                  type: string
+                participants:
+                  type: array
+                  items:
+                    type: string
+                meetingDate:
+                  type: string
+                transcript:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        '201':
+          description: Meeting created
+  /api/meetings/{id}:
+    get:
+      summary: Get meeting details
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Meeting details
+  /api/meetings/{id}/analyze:
+    post:
+      summary: Analyze meeting and generate action items
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Analysis generated
+  /api/action-items:
+    get:
+      summary: List action items
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+        - in: query
+          name: status
+          schema:
+            type: string
+        - in: query
+          name: assignee
+          schema:
+            type: string
+        - in: query
+          name: meetingId
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of action items
+  /api/action-items/overdue:
+    get:
+      summary: Get overdue action items
+      responses:
+        '200':
+          description: List of overdue action items
+  /api/action-items/{id}/status:
+    patch:
+      summary: Update action item status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [PENDING, IN_PROGRESS, COMPLETED]
+      responses:
+        '200':
+          description: Status updated
+  /api/evaluation:
+    get:
+      summary: Get evaluation info
+      security: []
+      responses:
+        '200':
+          description: Evaluation JSON
+  /health:
+    get:
+      summary: Get health status
+      security: []
+      responses:
+        '200':
+          description: Health OK
