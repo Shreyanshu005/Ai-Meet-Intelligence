@@ -18,7 +18,7 @@ export class NotificationService {
 
     try {
       const { error } = await resend.emails.send({
-        from: 'reminders@hintro-task.example.com',
+        from: 'reminders@aimeetintelligence.example.com',
         to: user.email,
         subject: `Overdue Action Item from ${item.meeting.title}`,
         html: `<p>Hello,</p><p>This is a reminder that the task <strong>${item.task}</strong> assigned to ${item.assignee} from the meeting "${item.meeting.title}" is overdue.</p>`,

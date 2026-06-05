@@ -1,24 +1,24 @@
-# Hintro Meeting Intelligence API
+# Meeting Intelligence API
 
-A production-grade Meeting Intelligence backend built to automatically transcribe, analyze, and extract actionable items from meetings using **Node.js, TypeScript, Express, PostgreSQL, Redis, and Groq (Llama 3.3)**. 
+A production-grade Meeting Intelligence backend built to automatically transcribe, analyze, and extract actionable items from meetings using Node.js, TypeScript, Express, PostgreSQL, Redis, and Groq (Llama 3.3). 
 
 This service intelligently parses meeting transcripts, tracks action items, caches expensive AI requests to save latency, and utilizes an asynchronous background job to send email reminders for overdue tasks.
 
-## 🚀 Tech Stack
+## Tech Stack
 
-- **Runtime & Language**: Node.js + TypeScript
-- **Framework**: Express.js
-- **Database (ORM)**: PostgreSQL + Prisma ORM
-- **Cache & Rate Limiting**: Redis
-- **AI Processing**: Groq SDK (Llama 3.3 70b)
-- **Email Delivery**: Resend SDK
-- **Task Scheduling**: `node-cron`
-- **Validation**: Zod
-- **Testing Suite**: Vitest + Supertest
+- Runtime & Language: Node.js + TypeScript
+- Framework: Express.js
+- Database: PostgreSQL + Prisma ORM
+- Cache: Redis
+- AI Processing: Groq SDK (Llama 3.3 70b)
+- Email Delivery: Resend SDK
+- Task Scheduling: node-cron
+- Validation: Zod
+- Testing Suite: Vitest + Supertest
 
 ---
 
-## 🛠️ Prerequisites
+## Prerequisites
 
 Make sure you have the following installed on your machine:
 - Node.js (v18+)
@@ -27,12 +27,12 @@ Make sure you have the following installed on your machine:
 
 ---
 
-## 🏗️ Local Setup
+## Local Setup
 
 ### 1. Clone & Install
 ```bash
-git clone <your-repository-url>
-cd hintro-task
+git clone https://github.com/Shreyanshu005/Ai-Meet-Intelligence.git
+cd Ai-Meet-Intelligence
 npm install
 ```
 
@@ -40,7 +40,7 @@ npm install
 Create a `.env` file in the root directory:
 ```env
 # Database
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/hintro_task?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ai_meet_intelligence?schema=public"
 
 # Cache
 REDIS_URL="redis://localhost:6379"
@@ -56,8 +56,8 @@ RESEND_API_KEY="your_resend_api_key_here"
 ### 3. Start Infrastructure
 Start the required PostgreSQL and Redis databases using Docker:
 ```bash
-docker run --name hintro-postgres -e POSTGRES_PASSWORD=postgres -d -p 5432:5432 postgres
-docker run --name hintro-redis -d -p 6379:6379 redis
+docker run --name ai-meet-postgres -e POSTGRES_PASSWORD=postgres -d -p 5432:5432 postgres
+docker run --name ai-meet-redis -d -p 6379:6379 redis
 ```
 
 ### 4. Database Schema
@@ -71,59 +71,49 @@ Run the application in development mode:
 ```bash
 npm run dev
 ```
-The server will start at `http://localhost:3000`.
+The server will start at http://localhost:3000.
 
 ---
 
-## 🧪 Testing
+## Testing
 
-This project features a comprehensive 40-assertion testing suite powered by **Vitest** and **Supertest**. 
+This project features a comprehensive 40-assertion testing suite powered by Vitest and Supertest. 
 
 ### 1. Set up Test Environment
-Create a `.env.test` file:
-```env
-DATABASE_URL_TEST="postgresql://postgres:postgres@localhost:5432/hintro_test?schema=public"
-REDIS_URL="redis://localhost:6379"
-JWT_SECRET="test_secret"
-GROQ_API_KEY="test_groq"
-RESEND_API_KEY="test_resend"
-```
+Ensure your test environment has the necessary mock variables in your environment. You can set them in your terminal session or rely on a local test runner configuration that doesn't check in real secrets.
 
 ### 2. Run the Suite
 ```bash
 npx vitest run
 ```
-*Note: The test suite runs in isolation, uses an independent test database, safely mocks external network calls (Groq, Resend), and clears the DB after each run.*
+Note: The test suite runs in isolation, uses an independent test database, safely mocks external network calls (Groq, Resend), and clears the DB after each run.
 
 ---
 
-## 🔌 Core API Endpoints
+## Core API Endpoints
 
 ### Auth
-- `POST /api/auth/register` - Register a new user and receive a JWT.
-- `POST /api/auth/login` - Authenticate an existing user.
+- POST /api/auth/register - Register a new user and receive a JWT.
+- POST /api/auth/login - Authenticate an existing user.
 
 ### Meetings & Analysis (Protected via Bearer Token)
-- `POST /api/meetings` - Upload a new meeting with a transcript.
-- `GET /api/meetings/:id` - Fetch a specific meeting details.
-- `POST /api/meetings/:id/analyze` - **[Core Feature]** Runs the transcript through the Groq AI, identifies decisions, and maps action items. Repeated calls are instantly fetched from the Redis cache.
+- POST /api/meetings - Upload a new meeting with a transcript.
+- GET /api/meetings/:id - Fetch a specific meeting details.
+- POST /api/meetings/:id/analyze - Runs the transcript through the Groq AI, identifies decisions, and maps action items. Repeated calls are instantly fetched from the Redis cache.
 
 ### Action Items (Protected via Bearer Token)
-- `GET /api/action-items` - View all your assigned action items.
-- `GET /api/action-items/overdue` - View incomplete action items past their due date.
-- `PATCH /api/action-items/:id/status` - Mark an action item as `COMPLETED`.
+- GET /api/action-items - View all your assigned action items.
+- GET /api/action-items/overdue - View incomplete action items past their due date.
+- PATCH /api/action-items/:id/status - Mark an action item as COMPLETED.
 
 ### Utility
-- `GET /health` - Check API operational status.
+- GET /health - Check API operational status.
 
 ---
 
-## ⚙️ Architecture Highlights
+## Architecture Highlights
 
-- **Idempotent AI Caching**: If a user hits `/analyze` twice, Redis instantly intercepts the request, preventing duplicate LLM billing and latency.
-- **Fail-safe Parsing**: Groq's JSON responses are strongly validated, and action items with AI-hallucinated dates safely default to `null` instead of crashing the database.
-- **Traceability**: Every request is injected with a UUID `traceId` which travels through middleware, logs, and HTTP error responses for rapid debugging.
-- **Background Jobs**: A cron job runs every 15 minutes, sweeping the `ActionItem` table for overdue tasks and firing off email reminders via the Resend SDK.
-
----
-*Built with ❤️ for advanced agentic coding workflows.*
+- Idempotent AI Caching: If a user hits /analyze twice, Redis instantly intercepts the request, preventing duplicate LLM billing and latency.
+- Fail-safe Parsing: Groq's JSON responses are strongly validated, and action items with AI-hallucinated dates safely default to null instead of crashing the database.
+- Traceability: Every request is injected with a UUID traceId which travels through middleware, logs, and HTTP error responses for rapid debugging.
+- Background Jobs: A cron job runs every 15 minutes, sweeping the ActionItem table for overdue tasks and firing off email reminders via the Resend SDK.
