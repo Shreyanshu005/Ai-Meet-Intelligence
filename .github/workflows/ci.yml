@@ -39,6 +39,7 @@ jobs:
       
     - name: Run Tests
       env:
+        DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ai_meet_intelligence_test?schema=public
         DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/ai_meet_intelligence_test?schema=public
         REDIS_URL: redis://localhost:6379
         JWT_SECRET: test_secret
