@@ -33,7 +33,7 @@ actionItemsRouter.get('/overdue', async (req: Request, res: Response, next: Next
 
 actionItemsRouter.patch('/:id/status', validate(updateStatusSchema), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const item = await actionItemsService.updateStatus(req.params.id, req.userId!, req.body.status);
+    const item = await actionItemsService.updateStatus(req.params.id as string, req.userId!, req.body.status);
     res.json(ok(item, req.traceId));
   } catch (error: any) {
     if (error.message === 'Action item not found') {

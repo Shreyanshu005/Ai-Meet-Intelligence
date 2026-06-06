@@ -28,7 +28,7 @@ meetingsRouter.get('/', async (req: Request, res: Response, next: NextFunction) 
 
 meetingsRouter.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const meeting = await meetingsService.getMeeting(req.params.id, req.userId!);
+    const meeting = await meetingsService.getMeeting(req.params.id as string, req.userId!);
     res.json(ok(meeting, req.traceId));
   } catch (error: any) {
     if (error.message === 'Meeting not found') {

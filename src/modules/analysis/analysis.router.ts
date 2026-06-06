@@ -6,7 +6,7 @@ export const analysisRouter = Router();
 
 analysisRouter.post('/:id/analyze', async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const result = await analysisService.analyzeMeeting(req.params.id, req.userId!);
+    const result = await analysisService.analyzeMeeting(req.params.id as string, req.userId!);
     res.json(ok(result, req.traceId));
   } catch (error: any) {
     if (error.message === 'Meeting not found') {

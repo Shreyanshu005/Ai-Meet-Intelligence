@@ -8,7 +8,7 @@ export const validate = (schema: ZodSchema) => (req: Request, res: Response, nex
     next();
   } catch (error: any) {
     if (error instanceof ZodError) {
-      const issues = error.errors || error.issues || [];
+      const issues = error.issues || [];
       return res.status(400).json(fail('VALIDATION_ERROR', issues.map((e: any) => `${e.path?.join('.')}: ${e.message}`).join(', '), req.traceId));
     }
     next(error);
