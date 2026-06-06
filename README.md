@@ -1,13 +1,68 @@
-# Meeting Intelligence API
+# AI Meeting Intelligence API
 
-A production-grade Meeting Intelligence backend built to automatically transcribe, analyze, and extract actionable items from meetings using Node.js, TypeScript, Express, PostgreSQL, Redis, and Groq (Llama 3.3). 
+A production-grade Meeting Intelligence backend built to automatically transcribe, analyze, and extract actionable items from meetings. The system utilizes Node.js, TypeScript, Express, PostgreSQL, Redis, and Groq (Llama 3.3) to provide a robust, scalable architecture.
 
-This service intelligently parses meeting transcripts, tracks action items, caches expensive AI requests to save latency, and utilizes an asynchronous background job to send email reminders for overdue tasks.
+This service parses meeting transcripts, tracks action items, caches expensive AI requests to reduce latency, and utilizes asynchronous background jobs to send email reminders for overdue tasks.
+
+## Architecture Overview
+
+The system is built on a modern Node.js stack prioritizing speed, type safety, and reliability. 
+
+```mermaid
+graph TD
+    Client[Client Application] -->|HTTP Requests| Express[Express.js Server]
+    
+    subgraph Backend Infrastructure
+        Express --> AuthMiddleware[JWT Auth Middleware]
+        AuthMiddleware --> RateLimiter[Rate Limiter]
+        RateLimiter --> Routes[API Routers]
+        
+        Routes -->|Cache Check / Rate Limits| Redis[(Redis Cache)]
+        Routes -->|ORM Queries| Prisma[Prisma ORM]
+        
+        Prisma --> Postgres[(PostgreSQL Database)]
+        
+        Routes -->|Transcription Analysis| Groq[Groq AI / Llama 3.3]
+        
+        Cron[Node-Cron Scheduler] -->|Periodic Sweep| Prisma
+        Cron -->|Trigger Reminders| Resend[Resend Email API]
+    end
+```
+
+### Analysis Pipeline Flow
+
+When a user requests meeting analysis, the system ensures idempotency and validates AI outputs strictly to prevent hallucinations.
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant API
+    participant Redis
+    participant Groq
+    participant Database
+
+    User->>API: POST /api/meetings/{id}/analyze
+    API->>Redis: Check Cache for {id}
+    
+    alt Cache Hit
+        Redis-->>API: Return Cached Analysis
+        API-->>User: 200 OK (Instant)
+    else Cache Miss
+        API->>Database: Fetch Meeting Transcript
+        Database-->>API: Transcript JSON
+        API->>Groq: Prompt with Transcript (JSON Schema)
+        Groq-->>API: Structured LLM Output
+        API->>API: Validate Citations & Timestamps
+        API->>Database: Store Action Items & Summary
+        API->>Redis: Set Cache (TTL)
+        API-->>User: 200 OK (Parsed Response)
+    end
+```
 
 ## Tech Stack
 
 - Runtime & Language: Node.js + TypeScript
-- Framework: Express.js
+- Framework: Express.js (v5)
 - Database: PostgreSQL + Prisma ORM
 - Cache: Redis
 - AI Processing: Groq SDK (Llama 3.3 70b)
@@ -18,102 +73,97 @@ This service intelligently parses meeting transcripts, tracks action items, cach
 
 ---
 
-## Prerequisites
+## Local Development Setup
 
-Make sure you have the following installed on your machine:
-- Node.js (v18+)
-- Docker (for Postgres and Redis instances)
-- Git
-
----
-
-## Local Setup
-
-### 1. Clone & Install
+### 1. Repository Initialization
+Clone the repository and install dependencies:
 ```bash
 git clone https://github.com/Shreyanshu005/Ai-Meet-Intelligence.git
 cd Ai-Meet-Intelligence
 npm install
 ```
 
-### 2. Environment Variables
-Create a `.env` file in the root directory:
+### 2. Environment Configuration
+Create a `.env` file in the root directory with the following keys. Note that default ports are assumed for local Docker setups.
+
 ```env
-# Database
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/ai_meet_intelligence?schema=public"
-
-# Cache
 REDIS_URL="redis://localhost:6379"
-
-# Security
 JWT_SECRET="your_super_secret_jwt_key"
-
-# External APIs
 GROQ_API_KEY="your_groq_api_key_here"
 RESEND_API_KEY="your_resend_api_key_here"
+PORT="3000"
 ```
 
-### 3. Start Infrastructure
-Start the required PostgreSQL and Redis databases using Docker:
+### 3. Start Infrastructure via Docker
+The project includes a `docker-compose.yml` for rapid local infrastructure spin-up.
+
 ```bash
-docker run --name ai-meet-postgres -e POSTGRES_PASSWORD=postgres -d -p 5432:5432 postgres
-docker run --name ai-meet-redis -d -p 6379:6379 redis
+docker-compose up -d
 ```
+This command initializes the PostgreSQL and Redis containers in the background.
 
-### 4. Database Schema
-Push the Prisma schema to set up your PostgreSQL tables:
+### 4. Database Migrations
+Push the Prisma schema to synchronize your PostgreSQL database structure:
 ```bash
 npx prisma db push
 ```
 
-### 5. Start the Server
-Run the application in development mode:
+### 5. Launch the Application
+Run the server in development mode with live reloading:
 ```bash
 npm run dev
 ```
-The server will start at http://localhost:3000.
+The server will bind to http://localhost:3000. 
 
 ---
 
-## Testing
+## Testing Architecture
 
-This project features a comprehensive 40-assertion testing suite powered by Vitest and Supertest. 
+The project features a comprehensive testing suite with 40 assertions designed to validate core business logic, API routing, and AI failure states. The testing architecture relies on Vitest and Supertest.
 
-### 1. Set up Test Environment
-Ensure your test environment has the necessary mock variables in your environment. You can set them in your terminal session or rely on a local test runner configuration that doesn't check in real secrets.
-
-### 2. Run the Suite
 ```bash
 npx vitest run
 ```
-Note: The test suite runs in isolation, uses an independent test database, safely mocks external network calls (Groq, Resend), and clears the DB after each run.
+
+### Testing Highlights
+- Environment Isolation: Tests utilize a separate SQLite in-memory database or an isolated PostgreSQL test schema to prevent local data corruption.
+- Network Mocking: External API dependencies, such as Groq and Resend, are fully mocked using `vi.mock` to ensure tests execute deterministically and rapidly without incurring API costs.
+- State Teardown: A global `afterEach` hook aggressively clears the database to maintain pure state isolation between tests.
 
 ---
 
-## Core API Endpoints
+## API Specification
 
-### Auth
-- POST /api/auth/register - Register a new user and receive a JWT.
-- POST /api/auth/login - Authenticate an existing user.
+The RESTful API is documented via OpenAPI/Swagger. Upon launching the server, interactive API documentation is available at `/api-docs`.
 
-### Meetings & Analysis (Protected via Bearer Token)
-- POST /api/meetings - Upload a new meeting with a transcript.
-- GET /api/meetings/:id - Fetch a specific meeting details.
-- POST /api/meetings/:id/analyze - Runs the transcript through the Groq AI, identifies decisions, and maps action items. Repeated calls are instantly fetched from the Redis cache.
+### Authentication Endpoints
+- POST /api/auth/register: Create a new account. Requires `email` and `password`. Returns a JWT.
+- POST /api/auth/login: Authenticate existing credentials and receive a JWT.
 
-### Action Items (Protected via Bearer Token)
-- GET /api/action-items - View all your assigned action items.
-- GET /api/action-items/overdue - View incomplete action items past their due date.
-- PATCH /api/action-items/:id/status - Mark an action item as COMPLETED.
+### Meeting Management
+*All subsequent routes require an `Authorization: Bearer <token>` header.*
 
-### Utility
-- GET /health - Check API operational status.
+- POST /api/meetings: Ingest a new meeting payload containing participants, meeting date, and raw transcript segments.
+- GET /api/meetings: Retrieve a paginated list of all past meetings owned by the authenticated user. Accepts `page` and `limit` query parameters.
+- GET /api/meetings/:id: Fetch specific meeting details and its associated transcripts.
+- POST /api/meetings/:id/analyze: Execute the AI analysis pipeline. Generates summaries, extracts actionable tasks, maps assignees, and securely persists the findings.
+
+### Action Items
+- GET /api/action-items: Fetch paginated action items. Supports filtering via `status`, `assignee`, and `meetingId` query parameters.
+- GET /api/action-items/overdue: Quickly retrieve all tasks that have breached their deadline and remain incomplete.
+- PATCH /api/action-items/:id/status: Transition an action item state between `PENDING`, `IN_PROGRESS`, and `COMPLETED`.
 
 ---
 
-## Architecture Highlights
+## Engineering Design Decisions
 
-- Idempotent AI Caching: If a user hits /analyze twice, Redis instantly intercepts the request, preventing duplicate LLM billing and latency.
-- Fail-safe Parsing: Groq's JSON responses are strongly validated, and action items with AI-hallucinated dates safely default to null instead of crashing the database.
-- Traceability: Every request is injected with a UUID traceId which travels through middleware, logs, and HTTP error responses for rapid debugging.
-- Background Jobs: A cron job runs every 15 minutes, sweeping the ActionItem table for overdue tasks and firing off email reminders via the Resend SDK.
+### 1. Security and Reliability
+- Rate Limiting: A Redis-backed rate limiter is mounted globally to prevent Denial of Service vectors and brute-force login attempts.
+- Tracing: Every incoming HTTP request is assigned a `traceId` which flows through middleware and error handlers. This ID is returned in error responses to facilitate immediate operational debugging.
+
+### 2. Idempotent AI Processing
+Calling Large Language Models is computationally expensive and introduces variable latency. To mitigate this, the `/analyze` endpoint utilizes a Redis caching layer. If an identical analysis request is made, the middleware intercepts it and immediately returns the cached JSON payload from memory.
+
+### 3. Background Reminders
+The architecture employs an asynchronous polling mechanism via `node-cron`. The scheduler sweeps the database every 15 minutes, identifying action items that are both past due and uncompleted. It seamlessly invokes the Resend SDK to dispatch alert emails, maintaining clean separation from the synchronous HTTP request lifecycle.
