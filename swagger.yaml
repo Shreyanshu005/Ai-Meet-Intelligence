@@ -4,10 +4,8 @@ info:
   version: 1.0.0
   description: API documentation for Ai Meet Intelligence Backend
 servers:
-  - url: http://localhost:3000
-    description: Local server
-  - url: https://api.aimeetintelligence.com
-    description: Production server
+  - url: /
+    description: Current server
 
 components:
   securitySchemes:
