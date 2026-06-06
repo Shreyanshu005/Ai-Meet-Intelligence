@@ -31,10 +31,10 @@ app.get('/health', (req, res) => {
 
 app.get('/api/evaluation', (req, res) => {
   res.json({
-    candidateName: "John Doe",
-    email: "john@example.com",
+    candidateName: "Shreyanshu",
+    email: "shreyanshu006@gmail.com",
     repositoryUrl: "https://github.com/Shreyanshu005/Ai-Meet-Intelligence",
-    deployedUrl: "https://example.com",
+    deployedUrl: "https://ai-meet-intelligence-production.up.railway.app/",
     externalIntegration: "Resend Email API",
     features: [
       "Authentication",
